@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>World's Happiness in 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--border:#1e1e2e;
+  --accent:#9305FF;--text:#f8fafc;--muted:#94a3b8;--subtle:#475569;
+  --r:8px;--font:'Helvetica Neue',Helvetica,Arial,sans-serif;
+}
+html,body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── HEADER ── */
+#header{padding:28px 40px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:52px}
+.hdr-title{flex-shrink:0;min-width:300px}
+#hdrDesc{display:flex;flex-direction:row;gap:24px;flex:0 1 820px;min-width:0}
+.hdr-desc{font-size:.76rem;color:var(--muted);line-height:1.55;flex:1;min-width:0}
+.hdr-desc p{margin-bottom:4px}.hdr-desc p:last-child{margin-bottom:0}
+#shareBtn{margin-left:auto;flex-shrink:0}
+.author-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--subtle);transition:color .2s,border-color .2s}
+.author-link:hover{color:var(--accent);border-color:var(--accent)}
+h1{font-size:2.8rem;font-weight:700;letter-spacing:-.04em;line-height:1;color:var(--text)}
+.subtitle{font-size:1rem;color:var(--muted);margin-top:6px;font-weight:300}
+.author-line{margin-top:9px;display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.author{font-size:.86rem;font-weight:600;color:var(--text)}
+.asep{color:var(--subtle);margin:0 9px}
+.tools{font-size:.78rem;color:var(--subtle)}
+.tools span{color:var(--border);margin:0 5px}
+.btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:var(--r);cursor:pointer;font-size:.82rem;font-family:var(--font);display:flex;align-items:center;gap:6px;flex-shrink:0;transition:border-color .2s,color .2s;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* ── HAPPINESS STRIP ── */
+#happinessStrip{padding:14px 40px 14px;border-bottom:1px solid var(--border)}
+#stripTitle{font-size:1.15rem;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:6px}
+#happinessStripSvg{display:block}
+
+/* ── CONTROLS ── */
+#controls{padding:12px 40px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ctl-lbl{font-size:.8rem;color:var(--muted);font-weight:500;flex-shrink:0}
+#regBtns{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.reg-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;font-size:.76rem;font-family:var(--font);transition:border-color .15s,color .15s;white-space:nowrap}
+.reg-btn:hover{border-color:var(--subtle);color:var(--text)}
+.reg-dot-btn{width:7px;height:7px;border-radius:50%;flex-shrink:0;opacity:.85}
+.sw{position:relative;flex:1;min-width:160px;max-width:230px}
+.sw input{width:100%;background:#0e0e18;color:var(--text);border:1px solid #334155;border-radius:6px;padding:6px 10px 6px 30px;font-family:var(--font);font-size:.82rem;outline:none;transition:border-color .2s}
+.sw input::placeholder{color:#64748b}
+.sw input:focus{border-color:var(--accent)}
+.si{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none}
+.sdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0e0e18;border:1px solid var(--border);border-radius:var(--r);z-index:200;display:none;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.7)}
+.sitem{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.82rem;transition:background .1s}
+.sitem:hover{background:#1e1e2e}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.srank{color:var(--subtle);font-size:.75rem;margin-left:auto}
+#clearBtn{background:transparent;border:1px solid #334155;color:var(--muted);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:var(--font);transition:border-color .2s,color .2s;white-space:nowrap}
+#clearBtn:hover{border-color:#f87171;color:#f87171}
+.ctl-spacer{flex:1}
+.ctl-hints{display:flex;align-items:center;gap:8px;padding:6px 40px 10px;font-size:.8rem;color:var(--muted);font-weight:500;white-space:nowrap}
+.ctl-hints span.dot{color:var(--muted)}
+
+/* ── CHIPS ── */
+#chipRow{display:none;padding:8px 40px 0;gap:7px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;border-radius:20px;border:1px solid;font-size:.8rem;font-weight:500;font-family:var(--font)}
+.chipdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chipx{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:1rem;line-height:1;padding:0 0 0 4px;transition:color .15s}
+.chipx:hover{color:var(--text)}
+
+/* ── MAIN ── */
+#beeswarmTitle{font-size:1.15rem;font-weight:700;color:var(--text);letter-spacing:-.02em;padding:14px 40px 0}
+.title-info-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.45);color:rgba(255,255,255,0.75);font-size:10px;font-weight:700;font-style:normal;cursor:pointer;margin-left:7px;vertical-align:middle;transition:background .15s,border-color .15s,color .15s;user-select:none;line-height:1;position:relative;top:-1px}
+.title-info-icon:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.7);color:var(--text)}
+#main{padding:4px 40px 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#beeswarmSvg{display:block}
+@media(max-width:1100px){
+  #hdrDesc{flex:0 0 400px}
+}
+@media(max-width:860px){
+  #hdrDesc{flex:0 0 280px;flex-direction:column;gap:10px}
+  .hdr-desc{font-size:.74rem}
+}
+@media(max-width:700px){
+  #header{padding:20px 16px 16px}
+  #hdrDesc{display:none}
+  #happinessStrip{padding:12px 16px 14px}
+  #controls,#chipRow{padding-left:16px;padding-right:16px}
+  #beeswarmTitle{padding-left:16px;padding-right:16px;font-size:1rem}
+  #main{padding:4px 16px 24px}
+  h1{font-size:2rem}
+  #stripTitle{font-size:1rem}
+}
+
+/* ── TOOLTIP ── */
+#tip{position:fixed;background:#10101e;border:1px solid #2a2a3e;border-radius:var(--r);padding:10px 14px;font-size:.82rem;font-family:var(--font);pointer-events:none;opacity:0;transition:opacity .1s;z-index:999;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.7);line-height:1.7}
+#tip.tip--wide{max-width:320px}
+#tip .tip-header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:1px}
+#tip strong{color:var(--text);font-size:.9rem}
+#tip .tip-rank{color:var(--text);font-size:.9rem;font-weight:700;white-space:nowrap}
+#tip .tip-region{color:var(--muted);font-size:.76rem;display:block;margin-bottom:5px}
+#tip .tr{display:flex;justify-content:space-between;align-items:baseline;gap:8px;color:var(--text)}
+#tip .tr s{color:var(--text);font-weight:600;font-style:normal;text-decoration:none;margin-left:auto}
+#tip .tip-frk{color:var(--text);font-size:.82rem;white-space:nowrap}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--accent);color:#fff;padding:8px 18px;border-radius:var(--r);font-size:.82rem;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:1000;font-family:var(--font)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:12px 40px 18px;font-size:.74rem;color:var(--subtle);border-top:1px solid var(--border)}
+footer a{color:var(--subtle);text-decoration:none}footer a:hover{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+<div id="toast">Link copied!</div>
+
+<header id="header">
+  <div class="hdr-title">
+    <h1>World's Happiness in 2026</h1>
+    <div class="subtitle">An interactive exploration of global wellbeing across 147 countries</div>
+    <div class="author-line">
+      <a href="https://www.linkedin.com/in/ffmc/" target="_blank" rel="noopener" class="author author-link">Francisco Cardoso</a>
+      <span class="asep">&mdash;</span>
+      <span class="author">Powered by Claude</span>
+      <span class="asep">&middot;</span>
+      <span class="tools">D3.js<span>&middot;</span>Python / pandas</span>
+    </div>
+  </div>
+  <div id="hdrDesc">
+    <div class="hdr-desc">
+      <p>The World Happiness Report is an annual global survey ranking 147 countries by how citizens rate their own lives. Published by the Oxford Wellbeing Research Centre using Gallup World Poll data, it breaks happiness scores into six factors: GDP per capita, social support, healthy life expectancy, freedom, generosity, and perceptions of corruption.</p>
+    </div>
+    <div class="hdr-desc">
+      <p>Every year I explore this report, drawn to understanding what truly shapes a good life. Here you can see where your country ranks, compare how each factor contributes, and highlight regional patterns.</p>
+    </div>
+  </div>
+  <button class="btn" id="shareBtn">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    Share
+  </button>
+</header>
+
+<div id="controls">
+  <span class="ctl-lbl">Click to Highlight:</span>
+  <div id="regBtns"></div>
+  <div class="sw">
+    <svg class="si" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="cSearch" placeholder="Highlight a country…" autocomplete="off">
+    <div id="sDrop" class="sdrop"></div>
+  </div>
+  <button id="clearBtn">Clear</button>
+</div>
+<div class="ctl-hints">
+  <span>&#9679; Larger circle = higher rank</span>
+  <span class="dot">&middot;</span>
+  <span>Click any dot to highlight &amp; compare</span>
+</div>
+<div id="chipRow"></div>
+
+<!-- ── HAPPINESS DISTRIBUTION STRIP ── -->
+<div id="happinessStrip">
+  <div id="stripTitle">Happiness Score <span class="title-info-icon" id="tipHappiness">i</span></div>
+  <svg id="happinessStripSvg"></svg>
+</div>
+
+<div id="beeswarmTitle">Factor Contribution <span class="title-info-icon" id="tipFactors">i</span></div>
+<div id="main">
+  <svg id="beeswarmSvg"></svg>
+</div>
+
+<footer>
+  Data: <a href="https://worldhappiness.report" target="_blank">World Happiness Report 2026</a>
+  &middot; Wellbeing Research Centre, University of Oxford &middot; Gallup World Poll
+</footer>
+
+<script>
+const DATA = [{"yr":2025,"rk":1,"cn":"Finland","sc":7.764,"lo":7.69,"hi":7.837,"gdp":1.915,"ss":1.638,"hle":0.939,"fr":1.105,"ge":0.093,"co":0.491,"dy":1.582},{"yr":2025,"rk":2,"cn":"Iceland","sc":7.54,"lo":7.449,"hi":7.63,"gdp":1.971,"ss":1.72,"hle":0.996,"fr":1.105,"ge":0.187,"co":0.187,"dy":1.373},{"yr":2025,"rk":3,"cn":"Denmark","sc":7.539,"lo":7.446,"hi":7.631,"gdp":1.986,"ss":1.633,"hle":0.93,"fr":1.081,"ge":0.125,"co":0.474,"dy":1.31},{"yr":2025,"rk":4,"cn":"Costa Rica","sc":7.439,"lo":7.356,"hi":7.522,"gdp":1.697,"ss":1.483,"hle":0.739,"fr":1.101,"ge":0.059,"co":0.122,"dy":2.236},{"yr":2025,"rk":5,"cn":"Sweden","sc":7.255,"lo":7.172,"hi":7.337,"gdp":1.95,"ss":1.57,"hle":1.027,"fr":1.07,"ge":0.149,"co":0.447,"dy":1.041},{"yr":2025,"rk":6,"cn":"Norway","sc":7.242,"lo":7.156,"hi":7.327,"gdp":2.057,"ss":1.626,"hle":0.983,"fr":1.092,"ge":0.157,"co":0.413,"dy":0.913},{"yr":2025,"rk":7,"cn":"Netherlands","sc":7.223,"lo":7.153,"hi":7.293,"gdp":1.983,"ss":1.539,"hle":0.922,"fr":1.0,"ge":0.175,"co":0.349,"dy":1.255},{"yr":2025,"rk":8,"cn":"Israel","sc":7.187,"lo":7.119,"hi":7.254,"gdp":1.867,"ss":1.606,"hle":0.925,"fr":0.863,"ge":0.139,"co":0.196,"dy":1.592},{"yr":2025,"rk":9,"cn":"Luxembourg","sc":7.063,"lo":6.971,"hi":7.154,"gdp":2.162,"ss":1.465,"hle":0.981,"fr":1.056,"ge":0.111,"co":0.382,"dy":0.907},{"yr":2025,"rk":10,"cn":"Switzerland","sc":7.018,"lo":6.937,"hi":7.099,"gdp":2.028,"ss":1.534,"hle":1.017,"fr":1.035,"ge":0.148,"co":0.452,"dy":0.804},{"yr":2025,"rk":11,"cn":"New Zealand","sc":6.995,"lo":6.915,"hi":7.074,"gdp":1.876,"ss":1.58,"hle":0.924,"fr":1.034,"ge":0.155,"co":0.422,"dy":1.003},{"yr":2025,"rk":12,"cn":"Mexico","sc":6.972,"lo":6.885,"hi":7.06,"gdp":1.636,"ss":1.366,"hle":0.631,"fr":1.015,"ge":0.056,"co":0.128,"dy":2.141},{"yr":2025,"rk":13,"cn":"Ireland","sc":6.928,"lo":6.839,"hi":7.018,"gdp":2.146,"ss":1.558,"hle":0.936,"fr":1.032,"ge":0.172,"co":0.364,"dy":0.72},{"yr":2025,"rk":14,"cn":"Belgium","sc":6.926,"lo":6.859,"hi":6.993,"gdp":1.951,"ss":1.52,"hle":0.988,"fr":0.99,"ge":0.107,"co":0.296,"dy":1.074},{"yr":2025,"rk":15,"cn":"Australia","sc":6.916,"lo":6.833,"hi":6.999,"gdp":1.937,"ss":1.497,"hle":0.956,"fr":0.989,"ge":0.159,"co":0.294,"dy":1.085},{"yr":2025,"rk":16,"cn":"Kosovo","sc":6.91,"lo":6.81,"hi":7.01,"gdp":1.535,"ss":1.293,"hle":0.907,"fr":1.045,"ge":0.186,"co":0.082,"dy":1.86},{"yr":2025,"rk":17,"cn":"Germany","sc":6.882,"lo":6.789,"hi":6.975,"gdp":1.948,"ss":1.49,"hle":0.876,"fr":0.948,"ge":0.145,"co":0.349,"dy":1.128},{"yr":2025,"rk":18,"cn":"Slovenia","sc":6.868,"lo":6.783,"hi":6.954,"gdp":1.872,"ss":1.594,"hle":0.913,"fr":1.097,"ge":0.108,"co":0.108,"dy":1.177},{"yr":2025,"rk":19,"cn":"Austria","sc":6.845,"lo":6.764,"hi":6.927,"gdp":1.954,"ss":1.474,"hle":0.926,"fr":0.979,"ge":0.171,"co":0.285,"dy":1.057},{"yr":2025,"rk":20,"cn":"Czechia","sc":6.821,"lo":6.739,"hi":6.903,"gdp":1.869,"ss":1.594,"hle":0.72,"fr":1.045,"ge":0.106,"co":0.081,"dy":1.405},{"yr":2025,"rk":21,"cn":"United Arab Emirates","sc":6.821,"lo":6.734,"hi":6.907,"gdp":1.98,"ss":1.096,"hle":0.71,"fr":1.071,"ge":0.149,"co":0.228,"dy":1.587},{"yr":2025,"rk":22,"cn":"Saudi Arabia","sc":6.817,"lo":6.726,"hi":6.907,"gdp":1.949,"ss":1.412,"hle":0.831,"fr":1.042,"ge":0.096,"co":0.196,"dy":1.291},{"yr":2025,"rk":23,"cn":"United States","sc":6.816,"lo":6.724,"hi":6.908,"gdp":2.002,"ss":1.516,"hle":0.678,"fr":0.776,"ge":0.155,"co":0.155,"dy":1.534},{"yr":2025,"rk":24,"cn":"Poland","sc":6.768,"lo":6.706,"hi":6.83,"gdp":1.851,"ss":1.479,"hle":0.693,"fr":0.945,"ge":0.023,"co":0.177,"dy":1.6},{"yr":2025,"rk":25,"cn":"Canada","sc":6.741,"lo":6.656,"hi":6.826,"gdp":1.917,"ss":1.525,"hle":0.955,"fr":0.948,"ge":0.153,"co":0.321,"dy":0.923},{"yr":2025,"rk":26,"cn":"Taiwan Province of China","sc":6.714,"lo":6.628,"hi":6.8,"gdp":1.959,"ss":1.446,"hle":0.933,"fr":0.879,"ge":0.107,"co":0.179,"dy":1.211},{"yr":2025,"rk":27,"cn":"Belize","sc":6.711,"lo":6.432,"hi":6.989,"gdp":1.471,"ss":1.42,"hle":0.609,"fr":1.146,"ge":0.07,"co":0.08,"dy":1.913},{"yr":2025,"rk":28,"cn":"Lithuania","sc":6.704,"lo":6.606,"hi":6.801,"gdp":1.863,"ss":1.555,"hle":0.653,"fr":0.891,"ge":0.049,"co":0.113,"dy":1.579},{"yr":2025,"rk":29,"cn":"United Kingdom","sc":6.694,"lo":6.613,"hi":6.776,"gdp":1.896,"ss":1.458,"hle":0.888,"fr":0.962,"ge":0.191,"co":0.291,"dy":1.008},{"yr":2025,"rk":30,"cn":"Serbia","sc":6.691,"lo":6.607,"hi":6.775,"gdp":1.696,"ss":1.543,"hle":0.58,"fr":0.913,"ge":0.124,"co":0.096,"dy":1.74},{"yr":2025,"rk":31,"cn":"Uruguay","sc":6.635,"lo":6.553,"hi":6.717,"gdp":1.748,"ss":1.54,"hle":0.525,"fr":1.054,"ge":0.07,"co":0.194,"dy":1.505},{"yr":2025,"rk":32,"cn":"Brazil","sc":6.634,"lo":6.54,"hi":6.728,"gdp":1.602,"ss":1.396,"hle":0.508,"fr":0.964,"ge":0.081,"co":0.122,"dy":1.96},{"yr":2025,"rk":33,"cn":"Kazakhstan","sc":6.633,"lo":6.555,"hi":6.711,"gdp":1.782,"ss":1.599,"hle":0.552,"fr":0.982,"ge":0.117,"co":0.104,"dy":1.496},{"yr":2025,"rk":34,"cn":"Romania","sc":6.629,"lo":6.542,"hi":6.715,"gdp":1.818,"ss":1.233,"hle":0.608,"fr":0.965,"ge":0.03,"co":0.034,"dy":1.941},{"yr":2025,"rk":35,"cn":"France","sc":6.586,"lo":6.51,"hi":6.662,"gdp":1.907,"ss":1.435,"hle":0.95,"fr":0.83,"ge":0.09,"co":0.24,"dy":1.133},{"yr":2025,"rk":36,"cn":"Singapore","sc":6.585,"lo":6.497,"hi":6.674,"gdp":2.167,"ss":1.471,"hle":1.059,"fr":0.98,"ge":0.145,"co":0.512,"dy":0.252},{"yr":2025,"rk":37,"cn":"El Salvador","sc":6.578,"lo":6.461,"hi":6.694,"gdp":1.448,"ss":1.086,"hle":0.633,"fr":1.089,"ge":0.047,"co":0.289,"dy":1.987},{"yr":2025,"rk":38,"cn":"Italy","sc":6.574,"lo":6.471,"hi":6.678,"gdp":1.899,"ss":1.405,"hle":0.975,"fr":0.746,"ge":0.075,"co":0.067,"dy":1.407},{"yr":2025,"rk":39,"cn":"Panama","sc":6.547,"lo":6.432,"hi":6.661,"gdp":1.787,"ss":1.479,"hle":0.818,"fr":0.975,"ge":0.039,"co":0.042,"dy":1.407},{"yr":2025,"rk":40,"cn":"Kuwait","sc":6.543,"lo":6.432,"hi":6.655,"gdp":1.862,"ss":1.316,"hle":0.88,"fr":1.031,"ge":0.11,"co":0.167,"dy":1.177},{"yr":2025,"rk":41,"cn":"Spain","sc":6.54,"lo":6.459,"hi":6.62,"gdp":1.871,"ss":1.552,"hle":1.036,"fr":0.857,"ge":0.112,"co":0.167,"dy":0.946},{"yr":2025,"rk":42,"cn":"Guatemala","sc":6.533,"lo":6.39,"hi":6.676,"gdp":1.472,"ss":1.175,"hle":0.38,"fr":1.034,"ge":0.076,"co":0.094,"dy":2.304},{"yr":2025,"rk":43,"cn":"Malta","sc":6.436,"lo":6.357,"hi":6.516,"gdp":1.942,"ss":1.532,"hle":0.948,"fr":0.977,"ge":0.183,"co":0.12,"dy":0.735},{"yr":2025,"rk":44,"cn":"Argentina","sc":6.43,"lo":6.337,"hi":6.522,"gdp":1.7,"ss":1.517,"hle":0.621,"fr":0.97,"ge":0.052,"co":0.076,"dy":1.493},{"yr":2025,"rk":45,"cn":"Viet Nam","sc":6.428,"lo":6.353,"hi":6.504,"gdp":1.51,"ss":1.375,"hle":0.698,"fr":1.147,"ge":0.039,"co":0.207,"dy":1.453},{"yr":2025,"rk":46,"cn":"Estonia","sc":6.41,"lo":6.33,"hi":6.49,"gdp":1.824,"ss":1.604,"hle":0.692,"fr":0.99,"ge":0.105,"co":0.353,"dy":0.842},{"yr":2025,"rk":47,"cn":"Bosnia and Herzegovina","sc":6.381,"lo":6.283,"hi":6.478,"gdp":1.616,"ss":1.425,"hle":0.678,"fr":0.874,"ge":0.152,"co":0.024,"dy":1.612},{"yr":2025,"rk":48,"cn":"Latvia","sc":6.365,"lo":6.277,"hi":6.454,"gdp":1.797,"ss":1.61,"hle":0.512,"fr":0.94,"ge":0.103,"co":0.097,"dy":1.305},{"yr":2025,"rk":49,"cn":"Jamaica","sc":6.305,"lo":5.994,"hi":6.615,"gdp":1.445,"ss":1.554,"hle":0.371,"fr":0.966,"ge":0.059,"co":0.082,"dy":1.827},{"yr":2025,"rk":50,"cn":"Chile","sc":6.302,"lo":6.212,"hi":6.393,"gdp":1.73,"ss":1.427,"hle":0.792,"fr":0.926,"ge":0.087,"co":0.087,"dy":1.254},{"yr":2025,"rk":51,"cn":"Nicaragua","sc":6.301,"lo":6.127,"hi":6.475,"gdp":1.32,"ss":1.349,"hle":0.74,"fr":1.03,"ge":0.097,"co":0.278,"dy":1.487},{"yr":2025,"rk":52,"cn":"Thailand","sc":6.296,"lo":6.187,"hi":6.405,"gdp":1.632,"ss":1.424,"hle":0.694,"fr":1.087,"ge":0.195,"co":0.029,"dy":1.234},{"yr":2025,"rk":53,"cn":"Uzbekistan","sc":6.283,"lo":6.18,"hi":6.386,"gdp":1.415,"ss":1.527,"hle":0.771,"fr":1.085,"ge":0.173,"co":0.196,"dy":1.116},{"yr":2025,"rk":54,"cn":"Slovakia","sc":6.255,"lo":6.189,"hi":6.321,"gdp":1.815,"ss":1.63,"hle":0.564,"fr":0.847,"ge":0.056,"co":0.065,"dy":1.278},{"yr":2025,"rk":55,"cn":"Bahrain","sc":6.254,"lo":6.143,"hi":6.364,"gdp":1.93,"ss":1.293,"hle":0.693,"fr":1.055,"ge":0.143,"co":0.171,"dy":0.969},{"yr":2025,"rk":56,"cn":"Philippines","sc":6.206,"lo":6.097,"hi":6.315,"gdp":1.413,"ss":1.285,"hle":0.286,"fr":1.085,"ge":0.088,"co":0.095,"dy":1.953},{"yr":2025,"rk":57,"cn":"Paraguay","sc":6.198,"lo":6.091,"hi":6.306,"gdp":1.547,"ss":1.529,"hle":0.209,"fr":1.039,"ge":0.097,"co":0.058,"dy":1.719},{"yr":2025,"rk":58,"cn":"Oman","sc":6.197,"lo":5.973,"hi":6.42,"gdp":1.789,"ss":1.286,"hle":0.58,"fr":1.057,"ge":0.132,"co":0.188,"dy":1.164},{"yr":2025,"rk":59,"cn":"Ecuador","sc":6.144,"lo":6.027,"hi":6.261,"gdp":1.505,"ss":1.168,"hle":0.835,"fr":0.86,"ge":0.058,"co":0.085,"dy":1.634},{"yr":2025,"rk":60,"cn":"Montenegro","sc":6.139,"lo":6.057,"hi":6.222,"gdp":1.709,"ss":1.485,"hle":0.68,"fr":0.935,"ge":0.073,"co":0.142,"dy":1.115},{"yr":2025,"rk":61,"cn":"Japan","sc":6.13,"lo":6.048,"hi":6.211,"gdp":1.858,"ss":1.414,"hle":1.041,"fr":0.875,"ge":0.019,"co":0.202,"dy":0.722},{"yr":2025,"rk":62,"cn":"Cyprus","sc":6.126,"lo":6.013,"hi":6.24,"gdp":1.892,"ss":1.215,"hle":0.953,"fr":0.794,"ge":0.086,"co":0.07,"dy":1.116},{"yr":2025,"rk":63,"cn":"Honduras","sc":6.096,"lo":5.954,"hi":6.237,"gdp":1.277,"ss":1.083,"hle":0.466,"fr":0.999,"ge":0.122,"co":0.081,"dy":2.067},{"yr":2025,"rk":64,"cn":"Dominican Republic","sc":6.093,"lo":5.957,"hi":6.23,"gdp":1.664,"ss":1.406,"hle":0.702,"fr":1.015,"ge":0.061,"co":0.188,"dy":1.057},{"yr":2025,"rk":65,"cn":"China","sc":6.074,"lo":5.998,"hi":6.15,"gdp":1.662,"ss":0.963,"hle":0.905,"fr":0.793,"ge":0.089,"co":0.161,"dy":1.502},{"yr":2025,"rk":66,"cn":"Kyrgyzstan","sc":6.049,"lo":5.976,"hi":6.121,"gdp":1.296,"ss":1.565,"hle":0.759,"fr":1.108,"ge":0.142,"co":0.102,"dy":1.077},{"yr":2025,"rk":67,"cn":"Republic of Korea","sc":6.04,"lo":5.945,"hi":6.134,"gdp":1.906,"ss":1.23,"hle":1.028,"fr":0.825,"ge":0.089,"co":0.149,"dy":0.812},{"yr":2025,"rk":68,"cn":"Colombia","sc":6.04,"lo":5.933,"hi":6.146,"gdp":1.586,"ss":1.374,"hle":0.63,"fr":0.915,"ge":0.042,"co":0.051,"dy":1.441},{"yr":2025,"rk":69,"cn":"Portugal","sc":6.029,"lo":5.928,"hi":6.131,"gdp":1.83,"ss":1.461,"hle":0.944,"fr":1.005,"ge":0.035,"co":0.031,"dy":0.724},{"yr":2025,"rk":70,"cn":"Croatia","sc":6.009,"lo":5.928,"hi":6.09,"gdp":1.834,"ss":1.562,"hle":0.737,"fr":0.675,"ge":0.022,"co":0.095,"dy":1.084},{"yr":2025,"rk":71,"cn":"Malaysia","sc":6.005,"lo":5.901,"hi":6.11,"gdp":1.766,"ss":1.17,"hle":0.413,"fr":1.109,"ge":0.161,"co":0.112,"dy":1.275},{"yr":2025,"rk":72,"cn":"Peru","sc":5.974,"lo":5.872,"hi":6.076,"gdp":1.535,"ss":1.24,"hle":0.605,"fr":0.849,"ge":0.055,"co":0.01,"dy":1.68},{"yr":2025,"rk":73,"cn":"Mauritius","sc":5.939,"lo":5.814,"hi":6.064,"gdp":1.707,"ss":1.384,"hle":0.704,"fr":0.926,"ge":0.092,"co":0.127,"dy":0.999},{"yr":2025,"rk":74,"cn":"Hungary","sc":5.937,"lo":5.829,"hi":6.044,"gdp":1.819,"ss":1.625,"hle":0.633,"fr":0.785,"ge":0.103,"co":0.056,"dy":0.916},{"yr":2025,"rk":75,"cn":"Mongolia","sc":5.936,"lo":5.852,"hi":6.02,"gdp":1.558,"ss":1.615,"hle":0.421,"fr":0.752,"ge":0.162,"co":0.051,"dy":1.376},{"yr":2025,"rk":76,"cn":"Trinidad and Tobago","sc":5.905,"lo":5.651,"hi":6.159,"gdp":1.748,"ss":1.413,"hle":0.49,"fr":0.884,"ge":0.109,"co":0.0,"dy":1.262},{"yr":2025,"rk":77,"cn":"Republic of Moldova","sc":5.851,"lo":5.741,"hi":5.961,"gdp":1.55,"ss":1.277,"hle":0.409,"fr":0.981,"ge":0.053,"co":0.037,"dy":1.544},{"yr":2025,"rk":78,"cn":"Bolivia","sc":5.835,"lo":5.727,"hi":5.943,"gdp":1.442,"ss":1.2,"hle":0.36,"fr":0.909,"ge":0.059,"co":0.038,"dy":1.827},{"yr":2025,"rk":79,"cn":"Russian Federation","sc":5.834,"lo":5.735,"hi":5.932,"gdp":1.821,"ss":1.331,"hle":0.505,"fr":0.809,"ge":0.112,"co":0.133,"dy":1.122},{"yr":2025,"rk":80,"cn":"Venezuela","sc":5.756,"lo":5.646,"hi":5.866,"gdp":0.0,"ss":1.335,"hle":0.561,"fr":0.846,"ge":0.18,"co":0.133,"dy":2.701},{"yr":2025,"rk":81,"cn":"Libya","sc":5.731,"lo":5.65,"hi":5.811,"gdp":1.48,"ss":1.136,"hle":0.619,"fr":0.865,"ge":0.099,"co":0.245,"dy":1.286},{"yr":2025,"rk":82,"cn":"North Macedonia","sc":5.719,"lo":5.629,"hi":5.809,"gdp":1.665,"ss":1.448,"hle":0.581,"fr":0.74,"ge":0.124,"co":0.013,"dy":1.149},{"yr":2025,"rk":83,"cn":"Algeria","sc":5.714,"lo":5.587,"hi":5.841,"gdp":1.535,"ss":1.275,"hle":0.964,"fr":0.933,"ge":0.057,"co":0.113,"dy":0.837},{"yr":2025,"rk":84,"cn":"Bulgaria","sc":5.703,"lo":5.611,"hi":5.796,"gdp":1.768,"ss":1.587,"hle":0.47,"fr":0.881,"ge":0.059,"co":0.003,"dy":0.935},{"yr":2025,"rk":85,"cn":"Greece","sc":5.697,"lo":5.584,"hi":5.81,"gdp":1.795,"ss":1.257,"hle":0.799,"fr":0.478,"ge":0.023,"co":0.064,"dy":1.282},{"yr":2025,"rk":86,"cn":"Albania","sc":5.662,"lo":5.543,"hi":5.782,"gdp":1.631,"ss":1.026,"hle":0.782,"fr":1.014,"ge":0.106,"co":0.06,"dy":1.043},{"yr":2025,"rk":87,"cn":"Indonesia","sc":5.617,"lo":5.517,"hi":5.718,"gdp":1.512,"ss":1.229,"hle":0.485,"fr":1.043,"ge":0.295,"co":0.033,"dy":1.02},{"yr":2025,"rk":88,"cn":"Tajikistan","sc":5.591,"lo":5.513,"hi":5.669,"gdp":1.18,"ss":1.476,"hle":0.783,"fr":NaN,"ge":0.085,"co":0.336,"dy":NaN},{"yr":2025,"rk":89,"cn":"Armenia","sc":5.584,"lo":5.485,"hi":5.683,"gdp":1.608,"ss":1.225,"hle":1.05,"fr":0.914,"ge":0.026,"co":0.152,"dy":0.608},{"yr":2025,"rk":90,"cn":"Hong Kong SAR of China","sc":5.569,"lo":5.49,"hi":5.648,"gdp":1.96,"ss":1.33,"hle":1.238,"fr":0.852,"ge":0.09,"co":0.395,"dy":-0.295},{"yr":2025,"rk":91,"cn":"Georgia","sc":5.517,"lo":5.42,"hi":5.614,"gdp":1.669,"ss":1.201,"hle":0.5,"fr":0.988,"ge":0.0,"co":0.161,"dy":0.998},{"yr":2025,"rk":92,"cn":"Lao PDR","sc":5.515,"lo":5.39,"hi":5.641,"gdp":1.357,"ss":0.866,"hle":0.554,"fr":1.065,"ge":0.134,"co":0.174,"dy":1.366},{"yr":2025,"rk":93,"cn":"Mozambique","sc":5.336,"lo":5.147,"hi":5.525,"gdp":0.839,"ss":1.018,"hle":0.126,"fr":0.888,"ge":0.116,"co":0.165,"dy":2.182},{"yr":2025,"rk":94,"cn":"T\u00fcrkiye","sc":5.3,"lo":5.222,"hi":5.379,"gdp":1.785,"ss":1.313,"hle":0.692,"fr":0.363,"ge":0.046,"co":0.099,"dy":1.002},{"yr":2025,"rk":95,"cn":"Iraq","sc":5.212,"lo":5.103,"hi":5.321,"gdp":1.477,"ss":1.127,"hle":0.704,"fr":0.615,"ge":0.087,"co":0.084,"dy":1.117},{"yr":2025,"rk":96,"cn":"Gabon","sc":5.167,"lo":5.03,"hi":5.304,"gdp":1.591,"ss":1.003,"hle":0.45,"fr":0.829,"ge":0.043,"co":0.092,"dy":1.159},{"yr":2025,"rk":97,"cn":"Iran","sc":5.151,"lo":5.029,"hi":5.274,"gdp":1.565,"ss":1.249,"hle":0.693,"fr":0.599,"ge":0.189,"co":0.124,"dy":0.733},{"yr":2025,"rk":98,"cn":"C\u00f4te d\u2019Ivoire","sc":5.148,"lo":5.018,"hi":5.277,"gdp":1.285,"ss":0.694,"hle":0.45,"fr":0.84,"ge":0.1,"co":0.176,"dy":1.604},{"yr":2025,"rk":99,"cn":"Nepal","sc":5.147,"lo":5.03,"hi":5.264,"gdp":1.2,"ss":1.099,"hle":0.508,"fr":0.887,"ge":0.117,"co":0.075,"dy":1.26},{"yr":2025,"rk":100,"cn":"Cameroon","sc":5.083,"lo":4.956,"hi":5.21,"gdp":1.191,"ss":0.9,"hle":0.348,"fr":0.821,"ge":0.094,"co":0.055,"dy":1.675},{"yr":2025,"rk":101,"cn":"South Africa","sc":5.009,"lo":4.885,"hi":5.132,"gdp":1.494,"ss":1.285,"hle":0.101,"fr":0.825,"ge":0.064,"co":0.064,"dy":1.176},{"yr":2025,"rk":102,"cn":"Azerbaijan","sc":4.993,"lo":4.913,"hi":5.072,"gdp":1.636,"ss":0.979,"hle":0.847,"fr":0.935,"ge":0.058,"co":0.198,"dy":0.34},{"yr":2025,"rk":103,"cn":"Niger","sc":4.94,"lo":4.79,"hi":5.09,"gdp":0.89,"ss":0.651,"hle":0.3,"fr":0.9,"ge":0.121,"co":0.115,"dy":1.964},{"yr":2025,"rk":104,"cn":"Pakistan","sc":4.868,"lo":4.737,"hi":4.999,"gdp":1.224,"ss":0.556,"hle":0.489,"fr":0.564,"ge":0.144,"co":0.071,"dy":1.819},{"yr":2025,"rk":105,"cn":"Tunisia","sc":4.798,"lo":4.714,"hi":4.883,"gdp":1.475,"ss":1.043,"hle":0.442,"fr":0.652,"ge":0.038,"co":0.071,"dy":1.078},{"yr":2025,"rk":106,"cn":"Nigeria","sc":4.788,"lo":4.665,"hi":4.911,"gdp":1.335,"ss":1.083,"hle":0.462,"fr":0.735,"ge":0.151,"co":0.036,"dy":0.986},{"yr":2025,"rk":107,"cn":"Senegal","sc":4.787,"lo":4.673,"hi":4.9,"gdp":1.164,"ss":0.882,"hle":0.48,"fr":0.922,"ge":0.114,"co":0.113,"dy":1.111},{"yr":2025,"rk":108,"cn":"Namibia","sc":4.781,"lo":4.679,"hi":4.882,"gdp":1.41,"ss":1.411,"hle":0.038,"fr":0.67,"ge":0.048,"co":0.058,"dy":1.145},{"yr":2025,"rk":109,"cn":"State of Palestine","sc":4.694,"lo":4.588,"hi":4.801,"gdp":1.242,"ss":1.335,"hle":NaN,"fr":0.742,"ge":0.073,"co":0.095,"dy":NaN},{"yr":2025,"rk":110,"cn":"Kenya","sc":4.674,"lo":4.543,"hi":4.804,"gdp":1.242,"ss":0.879,"hle":0.518,"fr":0.798,"ge":0.207,"co":0.093,"dy":0.936},{"yr":2025,"rk":111,"cn":"Ukraine","sc":4.658,"lo":4.549,"hi":4.767,"gdp":1.547,"ss":1.303,"hle":0.498,"fr":0.722,"ge":0.222,"co":0.008,"dy":0.358},{"yr":2025,"rk":112,"cn":"Morocco","sc":4.646,"lo":4.532,"hi":4.759,"gdp":1.376,"ss":0.401,"hle":0.674,"fr":0.844,"ge":0.035,"co":0.086,"dy":1.229},{"yr":2025,"rk":113,"cn":"Guinea","sc":4.609,"lo":4.467,"hi":4.751,"gdp":1.132,"ss":0.622,"hle":0.364,"fr":0.866,"ge":0.141,"co":0.102,"dy":1.381},{"yr":2025,"rk":114,"cn":"Mali","sc":4.588,"lo":4.471,"hi":4.705,"gdp":1.036,"ss":0.779,"hle":0.381,"fr":0.904,"ge":0.078,"co":0.105,"dy":1.305},{"yr":2025,"rk":115,"cn":"Ghana","sc":4.554,"lo":4.457,"hi":4.65,"gdp":1.297,"ss":0.961,"hle":0.507,"fr":0.932,"ge":0.123,"co":0.035,"dy":0.699},{"yr":2025,"rk":116,"cn":"India","sc":4.536,"lo":4.47,"hi":4.601,"gdp":1.397,"ss":0.732,"hle":0.298,"fr":1.015,"ge":0.121,"co":0.124,"dy":0.848},{"yr":2025,"rk":117,"cn":"Somalia","sc":4.508,"lo":4.393,"hi":4.624,"gdp":0.818,"ss":0.791,"hle":0.035,"fr":0.928,"ge":0.155,"co":0.218,"dy":1.562},{"yr":2025,"rk":118,"cn":"Uganda","sc":4.491,"lo":4.373,"hi":4.61,"gdp":1.032,"ss":1.181,"hle":0.449,"fr":0.924,"ge":0.14,"co":0.043,"dy":0.722},{"yr":2025,"rk":119,"cn":"Jordan","sc":4.478,"lo":4.354,"hi":4.602,"gdp":1.388,"ss":1.055,"hle":0.606,"fr":0.853,"ge":0.053,"co":0.174,"dy":0.348},{"yr":2025,"rk":120,"cn":"Mauritania","sc":4.473,"lo":4.359,"hi":4.587,"gdp":1.272,"ss":0.787,"hle":0.593,"fr":0.593,"ge":0.109,"co":0.188,"dy":0.931},{"yr":2025,"rk":121,"cn":"Cambodia","sc":4.462,"lo":4.354,"hi":4.569,"gdp":1.295,"ss":1.075,"hle":0.531,"fr":1.123,"ge":0.148,"co":0.088,"dy":0.201},{"yr":2025,"rk":122,"cn":"Congo","sc":4.456,"lo":4.294,"hi":4.617,"gdp":1.259,"ss":0.554,"hle":0.391,"fr":0.751,"ge":0.074,"co":0.123,"dy":1.304},{"yr":2025,"rk":123,"cn":"Burkina Faso","sc":4.455,"lo":4.354,"hi":4.557,"gdp":0.995,"ss":0.63,"hle":0.343,"fr":0.82,"ge":0.135,"co":0.253,"dy":1.28},{"yr":2025,"rk":124,"cn":"Benin","sc":4.393,"lo":4.262,"hi":4.525,"gdp":1.122,"ss":0.087,"hle":0.409,"fr":0.816,"ge":0.086,"co":0.243,"dy":1.63},{"yr":2025,"rk":125,"cn":"Chad","sc":4.385,"lo":4.252,"hi":4.518,"gdp":0.979,"ss":0.676,"hle":0.292,"fr":0.571,"ge":0.151,"co":0.116,"dy":1.6},{"yr":2025,"rk":126,"cn":"Lesotho","sc":4.375,"lo":4.17,"hi":4.579,"gdp":1.007,"ss":1.135,"hle":0.0,"fr":0.741,"ge":0.057,"co":0.069,"dy":1.365},{"yr":2025,"rk":127,"cn":"Bangladesh","sc":4.319,"lo":4.197,"hi":4.442,"gdp":1.353,"ss":0.245,"hle":0.672,"fr":1.078,"ge":0.111,"co":0.087,"dy":0.774},{"yr":2025,"rk":128,"cn":"Gambia","sc":4.306,"lo":4.21,"hi":4.403,"gdp":1.05,"ss":0.853,"hle":0.393,"fr":0.807,"ge":0.223,"co":0.042,"dy":0.938},{"yr":2025,"rk":129,"cn":"Myanmar","sc":4.287,"lo":4.144,"hi":4.43,"gdp":1.211,"ss":0.977,"hle":0.488,"fr":0.722,"ge":0.292,"co":0.16,"dy":0.436},{"yr":2025,"rk":130,"cn":"Liberia","sc":4.28,"lo":4.116,"hi":4.444,"gdp":0.867,"ss":0.815,"hle":0.386,"fr":0.796,"ge":0.125,"co":0.066,"dy":1.225},{"yr":2025,"rk":131,"cn":"Togo","sc":4.277,"lo":4.17,"hi":4.384,"gdp":1.039,"ss":0.572,"hle":0.442,"fr":0.682,"ge":0.085,"co":0.144,"dy":1.314},{"yr":2025,"rk":132,"cn":"Madagascar","sc":4.174,"lo":4.062,"hi":4.287,"gdp":0.867,"ss":0.71,"hle":0.393,"fr":0.38,"ge":0.118,"co":0.116,"dy":1.59},{"yr":2025,"rk":133,"cn":"Zambia","sc":4.106,"lo":3.954,"hi":4.259,"gdp":1.109,"ss":0.861,"hle":0.25,"fr":0.991,"ge":0.139,"co":0.101,"dy":0.654},{"yr":2025,"rk":134,"cn":"Sri Lanka","sc":4.013,"lo":3.898,"hi":4.127,"gdp":1.496,"ss":1.13,"hle":0.567,"fr":0.872,"ge":0.111,"co":0.059,"dy":-0.222},{"yr":2025,"rk":135,"cn":"Ethiopia","sc":3.985,"lo":3.879,"hi":4.091,"gdp":1.033,"ss":0.854,"hle":0.453,"fr":0.653,"ge":0.144,"co":0.097,"dy":0.753},{"yr":2025,"rk":136,"cn":"Comoros","sc":3.925,"lo":3.752,"hi":4.097,"gdp":1.089,"ss":0.352,"hle":0.468,"fr":0.373,"ge":0.118,"co":0.172,"dy":1.352},{"yr":2025,"rk":137,"cn":"Eswatini","sc":3.909,"lo":3.752,"hi":4.066,"gdp":1.41,"ss":1.036,"hle":0.044,"fr":0.579,"ge":0.055,"co":0.137,"dy":0.647},{"yr":2025,"rk":138,"cn":"Tanzania","sc":3.902,"lo":3.763,"hi":4.041,"gdp":1.108,"ss":0.778,"hle":0.459,"fr":1.006,"ge":0.145,"co":0.251,"dy":0.155},{"yr":2025,"rk":139,"cn":"Egypt","sc":3.862,"lo":3.765,"hi":3.958,"gdp":1.558,"ss":0.862,"hle":0.521,"fr":0.727,"ge":0.022,"co":0.097,"dy":0.074},{"yr":2025,"rk":140,"cn":"DR Congo","sc":3.761,"lo":3.609,"hi":3.914,"gdp":0.857,"ss":0.792,"hle":0.321,"fr":0.72,"ge":0.146,"co":0.066,"dy":0.86},{"yr":2025,"rk":141,"cn":"Lebanon","sc":3.723,"lo":3.635,"hi":3.811,"gdp":1.428,"ss":1.05,"hle":0.416,"fr":0.434,"ge":0.074,"co":0.057,"dy":0.265},{"yr":2025,"rk":142,"cn":"Yemen","sc":3.532,"lo":3.306,"hi":3.758,"gdp":0.692,"ss":1.292,"hle":0.431,"fr":0.549,"ge":0.084,"co":0.109,"dy":0.374},{"yr":2025,"rk":143,"cn":"Botswana","sc":3.464,"lo":3.335,"hi":3.593,"gdp":1.582,"ss":0.989,"hle":0.017,"fr":0.86,"ge":0.022,"co":0.093,"dy":-0.099},{"yr":2025,"rk":144,"cn":"Zimbabwe","sc":3.346,"lo":3.244,"hi":3.449,"gdp":1.213,"ss":0.782,"hle":0.189,"fr":0.729,"ge":0.056,"co":0.128,"dy":0.251},{"yr":2025,"rk":145,"cn":"Malawi","sc":3.284,"lo":3.153,"hi":3.415,"gdp":0.864,"ss":0.326,"hle":0.299,"fr":0.812,"ge":0.109,"co":0.143,"dy":0.73},{"yr":2025,"rk":146,"cn":"Sierra Leone","sc":3.251,"lo":3.147,"hi":3.355,"gdp":1.054,"ss":0.692,"hle":0.405,"fr":0.8,"ge":0.131,"co":0.052,"dy":0.117},{"yr":2025,"rk":147,"cn":"Afghanistan","sc":1.446,"lo":1.348,"hi":1.544,"gdp":0.921,"ss":0.0,"hle":0.176,"fr":0.0,"ge":0.079,"co":0.131,"dy":0.139}];
+
+// ── FACTOR RANKS (descending: highest value = #1) ──────────────────────────
+['gdp','ss','hle','fr','ge','co'].forEach(k=>{
+  const valid=DATA.filter(d=>d[k]!=null&&!isNaN(d[k])).sort((a,b)=>b[k]-a[k]);
+  valid.forEach((d,i)=>{ d[k+'_rk']=i+1; });
+});
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const FACTORS = [
+  {k:'gdp', l:'GDP per Capita',              c:'#c4b5fd'},  // avg 1.535
+  {k:'ss',  l:'Social Support',              c:'#93c5fd'},  // avg 1.205
+  {k:'fr',  l:'Freedom',                     c:'#fde68a'},  // avg 0.882
+  {k:'hle', l:'Healthy Life',                c:'#86efac'},  // avg 0.616
+  {k:'co',  l:'Perceptions of Corruption',   c:'#e879f9'},  // avg 0.148
+  {k:'ge',  l:'Generosity',                  c:'#fca5a5'},  // avg 0.106
+];
+
+const FACTOR_DEFS = {
+  gdp: "A country's economic output per person, adjusted for purchasing power (PPP) so that comparisons across countries are meaningful. Wealthier nations tend to score higher, but the relationship is logarithmic — gains diminish significantly at higher income levels, which is why some middle-income countries outrank richer ones.",
+  ss:  "The share of people who answer \"yes\" to: \"If you were in trouble, do you have relatives or friends you can count on to help you whenever you need them?\" This is the single strongest social predictor of happiness in the model — having someone to count on matters more than almost any other factor.",
+  hle: "The average number of years a person can expect to live in good health, sourced from the WHO Global Health Observatory. It captures not just longevity but quality of life in those years.",
+  fr:  "The share of people satisfied with their freedom to choose what they do with their lives, based on the question: \"Are you satisfied or dissatisfied with your freedom to choose what you do with your life?\" This factor has one of the largest impacts on happiness — and much of that impact works through positive emotions like laughter and enjoyment.",
+  ge:  "Whether people have donated money to charity in the past month, adjusted for each country's income level. This isolates a culture of giving beyond what wealth alone would predict. Its effect on happiness operates mainly through positive emotions rather than life evaluation directly.",
+  co:  "The average of two questions: \"Is corruption widespread throughout the government?\" and \"Is corruption widespread within businesses?\" Higher perceived corruption is associated with meaningfully lower happiness — it erodes the institutional trust that underpins a sense of security and fairness."
+};
+
+const REG_COLORS = {
+  'Nordic / N. Europe'      :'#9305FF',  // ~270° electric purple
+  'Eastern Europe'          :'#E80C7A',  // ~320° hot magenta
+  'Sub-Saharan Africa'      :'#1A6FFF',  // ~220° cobalt blue
+  'Latin America'           :'#FF530D',  // ~25°  sunset orange
+  'Middle East / N. Africa' :'#E8CD04',  // ~52°  golden yellow
+  'Asia-Pacific'            :'#00C4F0',  // ~193° sky cyan
+  'North America'           :'#39E75F'  // ~135° lime green
+};
+
+const BAND_ORDER = [
+  'Nordic / N. Europe','North America','Eastern Europe',
+  'Latin America','Middle East / N. Africa','Asia-Pacific','Sub-Saharan Africa'
+];
+
+const REG_MAP = {
+  'Finland':'Nordic / N. Europe','Iceland':'Nordic / N. Europe','Denmark':'Nordic / N. Europe',
+  'Sweden':'Nordic / N. Europe','Norway':'Nordic / N. Europe','Netherlands':'Nordic / N. Europe',
+  'Luxembourg':'Nordic / N. Europe','Switzerland':'Nordic / N. Europe','Austria':'Nordic / N. Europe',
+  'Germany':'Nordic / N. Europe','Belgium':'Nordic / N. Europe','Ireland':'Nordic / N. Europe',
+  'United Kingdom':'Nordic / N. Europe','France':'Nordic / N. Europe','Portugal':'Nordic / N. Europe',
+  'Spain':'Nordic / N. Europe','Italy':'Nordic / N. Europe','Greece':'Nordic / N. Europe',
+  'Malta':'Nordic / N. Europe','Cyprus':'Nordic / N. Europe',
+  'United States':'North America','Canada':'North America',
+  'Poland':'Eastern Europe','Czechia':'Eastern Europe','Lithuania':'Eastern Europe',
+  'Serbia':'Eastern Europe','Slovenia':'Eastern Europe','Kosovo':'Eastern Europe',
+  'Romania':'Eastern Europe','Latvia':'Eastern Europe','Estonia':'Eastern Europe',
+  'Slovakia':'Eastern Europe','Hungary':'Eastern Europe','Bulgaria':'Eastern Europe',
+  'Croatia':'Eastern Europe','Bosnia and Herzegovina':'Eastern Europe','Montenegro':'Eastern Europe',
+  'Albania':'Eastern Europe','Republic of Moldova':'Eastern Europe','Ukraine':'Eastern Europe',
+  'Russian Federation':'Eastern Europe','Georgia':'Eastern Europe','Armenia':'Eastern Europe',
+  'Azerbaijan':'Eastern Europe','North Macedonia':'Eastern Europe','T\u00fcrkiye':'Eastern Europe',
+  'Costa Rica':'Latin America','Mexico':'Latin America','El Salvador':'Latin America',
+  'Uruguay':'Latin America','Panama':'Latin America','Brazil':'Latin America',
+  'Guatemala':'Latin America','Chile':'Latin America','Nicaragua':'Latin America',
+  'Paraguay':'Latin America','Ecuador':'Latin America','Honduras':'Latin America',
+  'Bolivia':'Latin America','Peru':'Latin America','Venezuela':'Latin America',
+  'Colombia':'Latin America','Dominican Republic':'Latin America','Argentina':'Latin America',
+  'Jamaica':'Latin America','Trinidad and Tobago':'Latin America','Belize':'Latin America',
+  'Israel':'Middle East / N. Africa','United Arab Emirates':'Middle East / N. Africa',
+  'Saudi Arabia':'Middle East / N. Africa','Bahrain':'Middle East / N. Africa',
+  'Kuwait':'Middle East / N. Africa','Oman':'Middle East / N. Africa',
+  'Jordan':'Middle East / N. Africa','Lebanon':'Middle East / N. Africa',
+  'Egypt':'Middle East / N. Africa','Morocco':'Middle East / N. Africa',
+  'Algeria':'Middle East / N. Africa','Tunisia':'Middle East / N. Africa',
+  'Libya':'Middle East / N. Africa','Iran':'Middle East / N. Africa',
+  'Iraq':'Middle East / N. Africa','Yemen':'Middle East / N. Africa',
+  'State of Palestine':'Middle East / N. Africa','Mauritania':'Middle East / N. Africa',
+  'Taiwan Province of China':'Asia-Pacific','Singapore':'Asia-Pacific','Thailand':'Asia-Pacific',
+  'Viet Nam':'Asia-Pacific','Philippines':'Asia-Pacific','Japan':'Asia-Pacific',
+  'Republic of Korea':'Asia-Pacific','Mongolia':'Asia-Pacific','China':'Asia-Pacific',
+  'Malaysia':'Asia-Pacific','Indonesia':'Asia-Pacific','Cambodia':'Asia-Pacific',
+  'Lao PDR':'Asia-Pacific','Myanmar':'Asia-Pacific','Bangladesh':'Asia-Pacific',
+  'Sri Lanka':'Asia-Pacific','Nepal':'Asia-Pacific','Pakistan':'Asia-Pacific',
+  'India':'Asia-Pacific','Afghanistan':'Asia-Pacific','Uzbekistan':'Asia-Pacific',
+  'Tajikistan':'Asia-Pacific','Kyrgyzstan':'Asia-Pacific','Kazakhstan':'Asia-Pacific',
+  'Australia':'Asia-Pacific','New Zealand':'Asia-Pacific','Hong Kong SAR of China':'Asia-Pacific',
+};
+for(const d of DATA) if(!REG_MAP[d.cn]) REG_MAP[d.cn]='Sub-Saharan Africa';
+
+const maxRank = d3.max(DATA, d=>d.rk);
+function rankR(rk){ return 3.5 + (maxRank-rk)/(maxRank-1)*9; }
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let highlighted   = new Set();
+let activeRegions = new Set();
+let NODES         = {};
+let bsReady       = false;
+let hsReady       = false;
+let HS_NODES      = null;
+
+// ── REGION DISPLAY NAMES ───────────────────────────────────────────────────
+const REG_DISPLAY={
+  'Nordic / N. Europe':'Nordic/Western Europe',
+  'North America':'N. America',
+  'Eastern Europe':'Eastern Europe',
+  'Latin America':'LATAM',
+  'Middle East / N. Africa':'Middle East',
+  'Asia-Pacific':'Asia-Pacific',
+  'Sub-Saharan Africa':'Sub-Sahara'
+};
+
+// ── TOOLTIP ────────────────────────────────────────────────────────────────
+const tip = document.getElementById('tip');
+function showTip(html,e,light=false,wide=false){ tip.innerHTML=html; tip.classList.toggle('tip--light',light); tip.classList.toggle('tip--wide',wide); tip.style.opacity=1; moveTip(e); }
+function moveTip(e){
+  const tw=tip.classList.contains('tip--wide')?340:240;
+  let x=e.clientX+14, y=e.clientY-14;
+  if(x+tw>window.innerWidth)  x=e.clientX-tw-4;
+  if(y+160>window.innerHeight) y=e.clientY-160;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ tip.style.opacity=0; }
+
+// ── REGION BANDS ──────────────────────────────────────────────────────────
+const regCounts = {};
+BAND_ORDER.forEach(r=>{ regCounts[r]=DATA.filter(d=>(REG_MAP[d.cn]||'Sub-Saharan Africa')===r).length; });
+
+function computeRegionBands(width){
+  const total = BAND_ORDER.reduce((s,r)=>s+(regCounts[r]||0),0);
+  const gap   = width * 0.013;
+  const totalGap = gap*(BAND_ORDER.length-1);
+  const usable = width-totalGap;
+  let x=0; const bands={};
+  BAND_ORDER.forEach(r=>{
+    const cnt=regCounts[r]||0, w=(cnt/total)*usable;
+    bands[r]={start:x, end:x+w, center:x+w/2, width:w};
+    x+=w+gap;
+  });
+  return bands;
+}
+
+// ── HAPPINESS STRIP DIMENSIONS ─────────────────────────────────────────────
+const HS_H = 140;
+const HS_M = {t:10, r:24, b:28, l:56};
+
+function getHsW(){
+  const el=document.getElementById('happinessStrip');
+  if(!el) return 560;
+  const cs=getComputedStyle(el);
+  const natural=Math.floor(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+  return Math.max(natural, 560);
+}
+
+// ── BEESWARM DIMENSIONS ────────────────────────────────────────────────────
+let BS_H=610;
+const BS_M={t:104,r:24,b:34,l:56};
+const COL_GAP=30;
+const Y_DOMAIN=[0,2.3];
+
+function getBsW(){
+  const el=document.getElementById('main');
+  const cs=getComputedStyle(el);
+  const natural=Math.floor(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+  return Math.max(natural, 560);
+}
+
+function getBsH(){
+  const used=['header','controls','chipRow','happinessStrip','beeswarmTitle'].reduce((s,id)=>{
+    const el=document.getElementById(id); return s+(el?el.offsetHeight:0);
+  },0);
+  const ftr=document.querySelector('footer');
+  return Math.max(480, window.innerHeight - used - (ftr?ftr.offsetHeight:44) - 8);
+}
+
+// ── HAPPINESS STRIP ────────────────────────────────────────────────────────
+function drawHappinessStrip(){
+  const svgW=getHsW(); if(svgW<200) return;
+  const iW=svgW-HS_M.l-HS_M.r;
+  const iH=HS_H-HS_M.t-HS_M.b;
+  const cy=iH/2;
+  const xS=d3.scaleLinear().domain([1,8]).range([0,iW]);
+
+  // Build + simulate nodes (same rankR sizing as beeswarm)
+  const ns=DATA.map(d=>({
+    cn:d.cn, rk:d.rk, sc:d.sc,
+    r:rankR(d.rk),
+    gdp:d.gdp, ss:d.ss, hle:d.hle, fr:d.fr, ge:d.ge, co:d.co,
+    gdp_rk:d.gdp_rk, ss_rk:d.ss_rk, hle_rk:d.hle_rk, fr_rk:d.fr_rk, ge_rk:d.ge_rk, co_rk:d.co_rk,
+    x:xS(d.sc)+(Math.random()-.5)*3,
+    y:cy+(Math.random()-.5)*4,
+    tx:xS(d.sc)
+  }));
+  const sim=d3.forceSimulation(ns)
+    .force('x',d3.forceX(n=>n.tx).strength(3))
+    .force('y',d3.forceY(cy).strength(0.5))
+    .force('collide',d3.forceCollide(n=>n.r+1.8).iterations(3))
+    .stop();
+  for(let t=0;t<320;t++) sim.tick();
+  ns.forEach(n=>{
+    n.bx=Math.max(n.r+1, Math.min(iW-n.r-1, n.x));
+    n.by=Math.max(n.r+1, Math.min(iH-n.r-1, n.y));
+  });
+  HS_NODES=ns;
+
+  const svg=d3.select('#happinessStripSvg')
+    .attr('width',svgW).attr('height',HS_H).attr('overflow','visible');
+  svg.selectAll('*').remove();
+  svg.style('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+
+  // Glow filter
+  const defs=svg.append('defs');
+  const fi0=defs.append('filter').attr('id','hs-glow')
+    .attr('x','-70%').attr('y','-70%').attr('width','240%').attr('height','240%');
+  fi0.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','4').attr('result','blur');
+  const fm0=fi0.append('feMerge');
+  fm0.append('feMergeNode').attr('in','blur');
+  fm0.append('feMergeNode').attr('in','SourceGraphic');
+
+  const g=svg.append('g').attr('transform',`translate(${HS_M.l},${HS_M.t})`);
+
+  // Background
+  g.append('rect').attr('x',0).attr('y',0).attr('width',iW).attr('height',iH)
+    .attr('fill','#11111e').attr('rx',6);
+
+  // Subtle gridlines
+  [2,3,4,5,6,7].forEach(v=>{
+    g.append('line')
+      .attr('x1',xS(v)).attr('x2',xS(v)).attr('y1',0).attr('y2',iH)
+      .attr('stroke','#1c1c2e').attr('stroke-width',1);
+  });
+
+  // X-axis
+  const axisG=g.append('g').attr('transform',`translate(0,${iH})`);
+  axisG.call(d3.axisBottom(xS).ticks(7).tickSize(4).tickFormat(d3.format('.0f')));
+  axisG.select('.domain').attr('stroke','#2a2a3e');
+  axisG.selectAll('.tick line').attr('stroke','#2a2a3e');
+  axisG.selectAll('.tick text')
+    .attr('fill','#7a8ca0').attr('font-size',10)
+    .attr('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+
+  // Dots — highlighted on top
+  const sorted=[...ns].sort((a,b)=>(highlighted.has(a.cn)?1:0)-(highlighted.has(b.cn)?1:0));
+
+  g.selectAll('.hsdot').data(sorted,d=>d.cn).join('circle')
+    .attr('class','hsdot').attr('data-cn',d=>d.cn)
+    .attr('cx',d=>d.bx).attr('cy',d=>d.by)
+    .attr('r',d=>highlighted.has(d.cn)?d.r+2:d.r)
+    .attr('fill',d=>REG_COLORS[REG_MAP[d.cn]]||'#64748b')
+    .attr('opacity',d=>{
+      const inR=!activeRegions.size||activeRegions.has(REG_MAP[d.cn]);
+      if(!inR) return highlighted.has(d.cn)?0.35:0.1;
+      return highlighted.has(d.cn)?1.0:0.65;
+    })
+    .attr('stroke',d=>highlighted.has(d.cn)?'#ffffff':'none')
+    .attr('stroke-width',1.5)
+    .attr('filter',d=>highlighted.has(d.cn)?'url(#hs-glow)':null)
+    .style('cursor','pointer')
+    .on('mousemove',(evt,d)=>{
+      showTip(`<div class="tip-header"><strong>${d.cn}</strong><span class="tip-rank">#${d.rk}</span></div><span class="tip-region" style="color:${REG_COLORS[REG_MAP[d.cn]]||'var(--muted)'}">${REG_DISPLAY[REG_MAP[d.cn]]||REG_MAP[d.cn]||'\u2014'}</span>
+        <div class="tr"><b>Happiness</b> <s>${d.sc.toFixed(3)}</s></div>
+        <div style="margin-top:6px">${FACTORS.map(fac=>`<div class="tr">${fac.l}<span class="tip-frk">#${d[fac.k+'_rk']??'—'}</span><s>${isNaN(d[fac.k])?'N/A':Number(d[fac.k]).toFixed(3)}</s></div>`).join('')}</div>`,evt);
+      moveTip(evt);
+    })
+    .on('mouseout',hideTip)
+    .on('click',(evt,d)=>{
+      evt.stopPropagation();
+      if(highlighted.has(d.cn)) highlighted.delete(d.cn);
+      else highlighted.add(d.cn);
+      updateChips(); updateVisuals();
+    });
+
+  // Highlight labels
+  g.selectAll('.hslbl').data(ns,d=>d.cn).join('text')
+    .attr('class','hslbl')
+    .attr('x',d=>d.bx)
+    .attr('y',d=>d.by-(highlighted.has(d.cn)?d.r+2:d.r)-3)
+    .attr('fill','#f8fafc').attr('font-size',8).attr('font-weight','600')
+    .attr('text-anchor','middle').attr('pointer-events','none')
+    .attr('opacity',d=>highlighted.has(d.cn)?1:0)
+    .text(d=>d.cn.length>12?d.cn.slice(0,11)+'\u2026':d.cn);
+
+  hsReady=true;
+}
+
+function updateStripVisuals(){
+  if(!hsReady) return;
+  const tr=d3.transition().duration(260).ease(d3.easeQuadOut);
+  d3.selectAll('.hsdot').transition(tr)
+    .attr('r',d=>highlighted.has(d.cn)?d.r+2:d.r)
+    .attr('opacity',d=>{
+      const inR=!activeRegions.size||activeRegions.has(REG_MAP[d.cn]);
+      if(!inR) return highlighted.has(d.cn)?0.35:0.1;
+      return highlighted.has(d.cn)?1.0:0.65;
+    })
+    .attr('stroke',d=>highlighted.has(d.cn)?'#ffffff':'none')
+    .attr('filter',d=>highlighted.has(d.cn)?'url(#hs-glow)':null);
+  d3.selectAll('.hslbl').transition(tr)
+    .attr('opacity',d=>highlighted.has(d.cn)?1:0);
+}
+
+// ── COMPUTE BEESWARM NODES ─────────────────────────────────────────────────
+function computeNodes(svgW){
+  const iW   = svgW - BS_M.l - BS_M.r;
+  const iH   = BS_H - BS_M.t - BS_M.b;
+  const colW = (iW - COL_GAP*(FACTORS.length-1)) / FACTORS.length;
+  const yS   = d3.scaleLinear().domain(Y_DOMAIN).range([iH,0]);
+  const bands = computeRegionBands(colW);
+
+  NODES={};
+  FACTORS.forEach(fac=>{
+    const ns=DATA.filter(d=>d[fac.k]!=null).map(d=>{
+      const reg=REG_MAP[d.cn]||'Sub-Saharan Africa';
+      const tx=(bands[reg]?.center??colW/2)-colW/2;
+      const isNul=isNaN(d[fac.k]);
+      const val=isNul?0:d[fac.k];
+      return{cn:d.cn,rk:d.rk,sc:d.sc,lo:d.lo,hi:d.hi,frk:d[fac.k+'_rk'],
+             val,isNul,r:rankR(d.rk),
+             x:tx+(Math.random()-.5)*6, y:isNul?iH-8:yS(val), tx};
+    });
+    const sim=d3.forceSimulation(ns)
+      .force('y',d3.forceY(n=>n.isNul?iH-8:yS(n.val)).strength(4))
+      .force('x',d3.forceX(n=>n.tx).strength(0.88))
+      .force('collide',d3.forceCollide(n=>n.r+1.8).iterations(3))
+      .stop();
+    for(let t=0;t<320;t++) sim.tick();
+    const xBound=colW/2-6;
+    ns.forEach(n=>{
+      n.bx=Math.max(-xBound,Math.min(xBound,n.x));
+      n.by=Math.max(n.r+2,Math.min(iH-n.r-2,n.y));
+    });
+    NODES[fac.k]=ns;
+  });
+  return{iW,iH,colW,yS,bands};
+}
+
+// ── DRAW BEESWARM ──────────────────────────────────────────────────────────
+function colX(fi,colW){ return fi*(colW+COL_GAP); }
+function colCx(fi,colW){ return colX(fi,colW)+colW/2; }
+
+function drawBeeswarm(){
+  const svgW=getBsW(); if(svgW<200) return;
+  BS_H=getBsH();
+  const{iW,iH,colW,yS,bands}=computeNodes(svgW);
+
+  const svg=d3.select('#beeswarmSvg').attr('width',svgW).attr('height',BS_H).attr('overflow','visible');
+  svg.selectAll('*').remove();
+  svg.style('font-family',"'Helvetica Neue',Helvetica,Arial,sans-serif");
+
+  // Glow filter
+  const defs=svg.append('defs');
+  const fi0=defs.append('filter').attr('id','glow')
+    .attr('x','-70%').attr('y','-70%').attr('width','240%').attr('height','240%');
+  fi0.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','5').attr('result','blur');
+  const fm=fi0.append('feMerge');
+  fm.append('feMergeNode').attr('in','blur');
+  fm.append('feMergeNode').attr('in','SourceGraphic');
+
+  const g=svg.append('g').attr('transform',`translate(${BS_M.l},${BS_M.t})`);
+
+  // ── Subtle column backgrounds
+  FACTORS.forEach((_,fi)=>{
+    const cx0=colX(fi,colW);
+    g.append('rect').attr('x',cx0).attr('y',0)
+      .attr('width',colW).attr('height',iH)
+      .attr('fill','#11111e').attr('rx',4);
+  });
+
+  // ── Regional tint bands within each column
+  FACTORS.forEach((_,fi)=>{
+    const cx0=colX(fi,colW);
+    BAND_ORDER.forEach(r=>{
+      const b=bands[r]; if(!b||b.width<2) return;
+      g.append('rect').attr('x',cx0+b.start).attr('y',0)
+        .attr('width',b.width).attr('height',iH)
+        .attr('fill',REG_COLORS[r]).attr('opacity',0.04);
+    });
+  });
+
+  // ── Gridlines + Y-axis (span full iW)
+  [0,0.5,1.0,1.5,2.0].forEach(v=>{
+    g.append('line').attr('x1',0).attr('x2',iW).attr('y1',yS(v)).attr('y2',yS(v))
+      .attr('stroke',v===0?'#222235':'#171727')
+      .attr('stroke-width',v===0?1.5:1)
+      .attr('stroke-dasharray',v===0?null:'4,5');
+    g.append('text').attr('x',-9).attr('y',yS(v))
+      .attr('fill','#7a8ca0').attr('font-size',12)
+      .attr('text-anchor','end').attr('dominant-baseline','middle').text(v.toFixed(1));
+  });
+
+  // ── Per-column region band bars (color context strip, no labels)
+  {
+    const barY=iH+10, barH=5;
+    FACTORS.forEach((_,fi)=>{
+      const cx0=colX(fi,colW);
+      BAND_ORDER.forEach(r=>{
+        const b=bands[r]; if(!b||b.width<1) return;
+        g.append('rect')
+          .attr('x',cx0+b.start).attr('y',barY)
+          .attr('width',Math.max(0,b.width-1)).attr('height',barH)
+          .attr('rx',1.5).attr('fill',REG_COLORS[r]).attr('opacity',0.75);
+      });
+    });
+  }
+
+  // ── Dots + labels
+  FACTORS.forEach((fac,fi)=>{
+    const cx=colCx(fi,colW);
+    const ns=NODES[fac.k]; if(!ns) return;
+    const colG=g.append('g');
+
+    const sorted=[...ns].sort((a,b)=>(highlighted.has(a.cn)?1:0)-(highlighted.has(b.cn)?1:0));
+
+    colG.selectAll('.bdot').data(sorted,d=>d.cn).join('circle')
+      .attr('class','bdot').attr('data-cn',d=>d.cn)
+      .attr('cx',d=>cx+d.bx).attr('cy',d=>d.by)
+      .attr('r',d=>highlighted.has(d.cn)?d.r+2.5:d.r)
+      .attr('fill',d=>REG_COLORS[REG_MAP[d.cn]]||'#64748b')
+      .attr('opacity',d=>{
+        const inR=!activeRegions.size||activeRegions.has(REG_MAP[d.cn]);
+        if(!inR) return highlighted.has(d.cn)?0.35:0.1;
+        if(d.isNul) return highlighted.has(d.cn)?0.6:0.22;
+        return highlighted.has(d.cn)?1.0:0.65;
+      })
+      .attr('stroke',d=>highlighted.has(d.cn)?'#ffffff':'none')
+      .attr('stroke-width',1.5)
+      .attr('filter',d=>highlighted.has(d.cn)?'url(#glow)':null)
+      .style('cursor','pointer')
+      .on('mousemove',(evt,d)=>{
+        showTip(`<div class="tip-header"><strong>${d.cn}</strong><span class="tip-rank">#${d.rk}</span></div><span class="tip-region" style="color:${REG_COLORS[REG_MAP[d.cn]]||'var(--muted)'}">${REG_DISPLAY[REG_MAP[d.cn]]||REG_MAP[d.cn]||'\u2014'}</span>
+          <div class="tr">${fac.l}<span class="tip-frk">#${d.frk??'—'}</span><s>${d.val.toFixed(3)}</s></div>`,evt);
+        moveTip(evt);
+      })
+      .on('mouseout',hideTip)
+      .on('click',(evt,d)=>{
+        evt.stopPropagation();
+        if(highlighted.has(d.cn)) highlighted.delete(d.cn);
+        else highlighted.add(d.cn);
+        updateChips(); updateVisuals();
+      });
+
+    // Highlight labels
+    colG.selectAll('.blbl').data(ns,d=>d.cn).join('text')
+      .attr('class','blbl')
+      .attr('x',d=>cx+d.bx).attr('y',d=>d.by-(highlighted.has(d.cn)?d.r+2.5:d.r)-5)
+      .attr('fill','#f8fafc').attr('font-size',8.5).attr('font-weight','600')
+      .attr('text-anchor','middle').attr('pointer-events','none')
+      .attr('opacity',d=>highlighted.has(d.cn)?1:0)
+      .text(d=>d.cn.length>12?d.cn.slice(0,11)+'\u2026':d.cn);
+  });
+
+  // ── White label boxes at TOP of each column (drawn LAST — on top of dots)
+  {
+    const lbh=27, lby=-lbh-46;
+    const iconR=6.5, iconGap=5, padH=9;
+    // pre-compute pill geometry per factor
+    const pills=FACTORS.map((fac,fi)=>{
+      const cx=colCx(fi,colW);
+      const textW=Math.max(44, Math.min(colW+COL_GAP-iconR*2-iconGap-padH*2-4, fac.l.length*7+10));
+      const pillW=padH+textW+iconGap+iconR*2+padH;
+      return{fac,cx,textW,pillW,
+             textX:cx-pillW/2+padH+textW/2,
+             iconX:cx-pillW/2+padH+textW+iconGap+iconR,
+             iconY:lby+lbh/2};
+    });
+    // Pass 1: rects
+    pills.forEach(({cx,pillW})=>{
+      g.append('rect').attr('x',cx-pillW/2).attr('y',lby)
+        .attr('width',pillW).attr('height',lbh).attr('rx',5)
+        .attr('fill','rgba(255,255,255,0.08)')
+        .attr('stroke','rgba(255,255,255,0.28)').attr('stroke-width',0.8);
+    });
+    // Pass 2: texts + info icons
+    pills.forEach(({fac,textX,iconX,iconY})=>{
+      g.append('text').attr('x',textX).attr('y',iconY)
+        .attr('fill','#ffffff').attr('font-size',12).attr('font-weight','700')
+        .attr('text-anchor','middle').attr('dominant-baseline','middle').text(fac.l);
+      const ig=g.append('g').attr('cursor','pointer')
+        .on('mousemove',(evt)=>{
+          showTip(`<div style="font-weight:700;font-size:.88rem;margin-bottom:6px;color:var(--text)">${fac.l}</div><div style="font-size:.78rem;line-height:1.6;color:#94a3b8">${FACTOR_DEFS[fac.k]}</div>`,evt,false,true);
+          moveTip(evt);
+        })
+        .on('mouseout',hideTip);
+      ig.append('circle')
+        .attr('cx',iconX).attr('cy',iconY).attr('r',iconR)
+        .attr('fill','rgba(255,255,255,0.1)')
+        .attr('stroke','rgba(255,255,255,0.45)').attr('stroke-width',0.9);
+      ig.append('text')
+        .attr('x',iconX).attr('y',iconY)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill','rgba(255,255,255,0.75)').attr('font-size',9).attr('font-weight','700')
+        .attr('pointer-events','none').text('i');
+    });
+  }
+
+  // ── Average Contribution arrow (between pills and chart) ───────────────────
+  {
+    const ay=-28, col='#475569', labelCol='#64748b';
+    const ag=g.append('g');
+    // line (starts after arrowhead)
+    ag.append('line')
+      .attr('x1',8).attr('y1',ay).attr('x2',iW).attr('y2',ay)
+      .attr('stroke',col).attr('stroke-width',1);
+    // arrowhead (left)
+    ag.append('path')
+      .attr('d',`M0,${ay} L8,${ay-3.5} L8,${ay+3.5}Z`)
+      .attr('fill',col);
+    // centre label
+    ag.append('text')
+      .attr('x',iW/2).attr('y',ay-7)
+      .attr('text-anchor','middle').attr('dominant-baseline','auto')
+      .attr('fill',labelCol).attr('font-size',10.5)
+      .attr('letter-spacing','0.07em')
+      .text('Average Contribution');
+    // left cap label — Higher
+    ag.append('text')
+      .attr('x',12).attr('y',ay+13)
+      .attr('text-anchor','start').attr('dominant-baseline','auto')
+      .attr('fill',col).attr('font-size',12)
+      .attr('letter-spacing','0.04em')
+      .text('Higher');
+    // right cap label — Lower
+    ag.append('text')
+      .attr('x',iW).attr('y',ay+13)
+      .attr('text-anchor','end').attr('dominant-baseline','auto')
+      .attr('fill',col).attr('font-size',12)
+      .attr('letter-spacing','0.04em')
+      .text('Lower');
+  }
+
+  bsReady=true;
+}
+
+function updateVisuals(){
+  const tr=d3.transition().duration(260).ease(d3.easeQuadOut);
+  d3.selectAll('.bdot').transition(tr)
+    .attr('r',d=>highlighted.has(d.cn)?d.r+2.5:d.r)
+    .attr('opacity',d=>{
+      const inR=!activeRegions.size||activeRegions.has(REG_MAP[d.cn]);
+      if(!inR) return highlighted.has(d.cn)?0.35:0.1;
+      if(d.isNul) return highlighted.has(d.cn)?0.6:0.22;
+      return highlighted.has(d.cn)?1.0:0.65;
+    })
+    .attr('stroke',d=>highlighted.has(d.cn)?'#ffffff':'none')
+    .attr('filter',d=>highlighted.has(d.cn)?'url(#glow)':null);
+  d3.selectAll('.blbl').transition(tr)
+    .attr('opacity',d=>highlighted.has(d.cn)?1:0);
+  updateStripVisuals();
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────
+const sIn=document.getElementById('cSearch');
+const sD=document.getElementById('sDrop');
+sIn.addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  if(q.length<1){sD.style.display='none';return;}
+  const hits=DATA.filter(d=>d.cn.toLowerCase().includes(q)).sort((a,b)=>a.rk-b.rk).slice(0,8);
+  if(!hits.length){sD.style.display='none';return;}
+  sD.innerHTML=hits.map(d=>`
+    <div class="sitem" onmousedown="addH('${d.cn.replace(/'/g,"\\'")}')">
+      <div class="sdot" style="background:${REG_COLORS[REG_MAP[d.cn]]||'#64748b'}"></div>
+      <span>${d.cn}</span><span class="srank">#${d.rk}</span>
+    </div>`).join('');
+  sD.style.display='block';
+});
+sIn.addEventListener('blur',()=>setTimeout(()=>{sD.style.display='none';},150));
+
+function addH(cn){
+  highlighted.add(cn); sIn.value=''; sD.style.display='none';
+  updateChips(); if(bsReady||hsReady) updateVisuals();
+}
+function removeH(cn){
+  highlighted.delete(cn); updateChips(); if(bsReady||hsReady) updateVisuals();
+}
+function updateChips(){
+  const row=document.getElementById('chipRow');
+  if(!highlighted.size){row.style.display='none';row.innerHTML='';return;}
+  row.style.display='flex';
+  row.innerHTML=[...highlighted].map(cn=>`
+    <div class="chip" style="border-color:${(REG_COLORS[REG_MAP[cn]]||'#64748b')}44;background:${(REG_COLORS[REG_MAP[cn]]||'#64748b')}18">
+      <div class="chipdot" style="background:${REG_COLORS[REG_MAP[cn]]||'#64748b'}"></div>
+      <span>${cn}</span>
+      <button class="chipx" onclick="removeH('${cn.replace(/'/g,"\\'")}')">&#215;</button>
+    </div>`).join('');
+}
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  highlighted.clear();
+  activeRegions.clear();
+  document.querySelectorAll('.reg-btn').forEach(b=>{
+    b.classList.remove('active'); b.style.borderColor=''; b.style.color='';
+  });
+  updateChips(); updateVisuals();
+});
+
+// ── REGION HIGHLIGHT BUTTONS ───────────────────────────────────────────────
+function buildRegButtons(){
+  const el=document.getElementById('regBtns');
+  BAND_ORDER.forEach(r=>{
+    const btn=document.createElement('button');
+    btn.className='reg-btn'; btn.dataset.reg=r;
+    btn.innerHTML=`<span class="reg-dot-btn" style="background:${REG_COLORS[r]}"></span>${REG_DISPLAY[r]||r}`;
+    btn.addEventListener('click',()=>{
+      if(activeRegions.has(r)) activeRegions.delete(r);
+      else activeRegions.add(r);
+      const on=activeRegions.has(r);
+      btn.classList.toggle('active',on);
+      btn.style.borderColor=on?REG_COLORS[r]:'';
+      btn.style.color=on?REG_COLORS[r]:'';
+      updateVisuals();
+    });
+    el.appendChild(btn);
+  });
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────
+document.getElementById('shareBtn').addEventListener('click',()=>{
+  navigator.clipboard.writeText(window.location.href).catch(()=>{});
+  const t=document.getElementById('toast');
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+buildRegButtons();
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  drawHappinessStrip();
+  drawBeeswarm();
+}));
+window.addEventListener('resize',()=>{
+  NODES={}; HS_NODES=null; bsReady=false; hsReady=false;
+  drawHappinessStrip();
+  drawBeeswarm();
+});
+
+// ── CHART TITLE INFO ICONS ──────────────────────────────────────────────────
+const CHART_DEFS = {
+  happiness: {
+    title: "How happiness is measured",
+    body:  "Each country's score is based on a single question from the Gallup World Poll, asked annually to around 1,000 respondents per country. People are asked to imagine a ladder where 10 represents the best possible life and 0 the worst, then rate where they currently stand. This is known as the Cantril Ladder. The scores shown here are three-year averages (2023–2025) to reduce sampling noise and provide a more stable picture of national well-being."
+  },
+  factors: {
+    title: "The Six Factors",
+    body:  "These factors don't determine the ranking — the ranking comes entirely from people's own answers. But they help explain why some countries score higher than others. Together they account for more than 75% of the variation in happiness across countries."
+  }
+};
+[['tipHappiness','happiness'],['tipFactors','factors']].forEach(([id,key])=>{
+  const el=document.getElementById(id);
+  const def=CHART_DEFS[key];
+  const html=`<div style="font-weight:700;font-size:.88rem;margin-bottom:6px;color:var(--text)">${def.title}</div><div style="font-size:.78rem;line-height:1.6;color:#94a3b8">${def.body}</div>`;
+  el.addEventListener('mousemove', e=>{ showTip(html,e,false,true); moveTip(e); });
+  el.addEventListener('mouseleave', hideTip);
+});
+
+</script>
+</body>
+</html>
